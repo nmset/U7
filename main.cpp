@@ -10,10 +10,53 @@
 #include <iostream>
 #include <getopt.h>
 #include <utf8proc.h>
+#include <format>
+#include <map>
 
 using namespace std;
 
 #define STRIP_OPTIONS_DEFAULT (UTF8PROC_IGNORE | UTF8PROC_STRIPCC | UTF8PROC_STRIPMARK | UTF8PROC_STRIPNA | UTF8PROC_DECOMPOSE | UTF8PROC_STABLE | UTF8PROC_NULLTERM)
+
+typedef map<int, string> KeyValuePair;
+// Described in utf8proc.h.
+KeyValuePair categoryDescription;
+KeyValuePair bidirectional;
+KeyValuePair decompositionType;
+KeyValuePair boundClass;
+
+string valueRepresentation(long nb, int baseHint) {
+    // https://en.cppreference.com/w/cpp/utility/format/formatter
+    string formatted;
+    switch (baseHint)
+    {
+        case 2:
+            formatted = std::format("{:08b}", nb);
+            break;
+        case 8:
+            formatted = std::format("{}{:03o}", "\\", nb);
+            break;
+        case 10:
+            formatted = std::format("{:d}", nb);
+            break;
+        case 16:
+            formatted = std::format("{}{:0X}","0x", nb);
+            break;
+        case 17: // enforce 4-byte representation for UTF-16, even if codepoint < 0xFFFF.
+            formatted = std::format("{}{:04X}","0x", nb);
+            break;
+        case 'U':
+            formatted = std::format("{}{:04X}","U+", nb);
+            break;
+        case 'x':
+            formatted = std::format("{}{:d}{}","&#", nb, ";");
+            break;
+        default:
+            cout << "Unhandled base: " << baseHint << endl;
+            return "";
+    }
+    
+    return formatted;
+}
 
 void unaccentShowHelp()
 {
@@ -37,6 +80,25 @@ void normalizeShowHelp()
     "\n\n  -t, --type: one of NFC, NFD, NFKC, NFKD, NFKC_Casefold"
     "\n  -h, --help: show this message"
     "\n\nThe input can be piped in or read from stdin. It must be a single NULL terminated line.");
+    
+    cout << message << endl;
+}
+
+void representationShowHelp()
+{
+    string message("This operational mode displays representations of the first identified codepoint."
+    "\n\n  -p, --codepoint: hexadecimal representation of the codepoint"
+    "\n  -e, --utf8: hexadecimal representation of each byte"
+    "\n  -s, --utf16: hexadecimal representation of each surrogate"
+    "\n  -b, --binary: binary representation of each byte"
+    "\n  -o, --octal: octal representation of each byte"
+    "\n  -d, --decimal: decimal representation of each byte"
+    "\n  -x, --xml: XML decimal representation of each byte"
+    "\n  -L, --tolower: displays the codepoint as a lower-case character if existent"
+    "\n  -U, --toupper: displays the codepoint as an upper-case character if existent"
+    "\n  -T, --totitle: displays the codepoint as a title-case character if existent"
+    "\n  -h, --help: show this message"
+    "\n\nThe input can be piped in or read from stdin. Pass in a single character for simplicity.");
     
     cout << message << endl;
 }
@@ -188,10 +250,257 @@ int normalize(int argc, char ** argv)
     return 0;
 }
 
+int representation(int argc, char ** argv)
+{
+    for (uint i = 0; i < argc; i++)
+    {
+        string arg = argv[i];
+        if (arg == "-h" || arg == "--help")
+        {
+            representationShowHelp();
+            return 0;
+        }
+    }
+    
+    utf8proc_int32_t codepoint = 0;
+    string input;
+    cin >> input;
+    const utf8proc_uint8_t * inputArray = (const utf8proc_uint8_t *) input.c_str();
+    // This stops at the first codepoint; with 'عَ', the first retrieved codepoint is 'ع'.
+    utf8proc_ssize_t nb = utf8proc_iterate(&inputArray[0], -1, &codepoint);
+    if (nb < 0)
+    {
+        cout << utf8proc_errmsg(nb) << endl;
+        return nb * -1;
+    }
+    utf8proc_uint8_t firstCharArray[5];
+    utf8proc_ssize_t nbOfBytesInFirstChar = utf8proc_encode_char(codepoint, firstCharArray);
+    if (nbOfBytesInFirstChar == 0)
+    {
+        cout << "No valid bytes at start of input." << endl;
+        return 51;
+    }
+    firstCharArray[nbOfBytesInFirstChar] = '\0';
+    
+    option longopts[] = {
+        {"codepoint", no_argument, 0, 'p'}, 
+        {"utf8", no_argument, 0, 'e'},  // 'e'ight
+        {"utf16", no_argument, 0, 's'}, // 's'ixteen
+        {"binary", no_argument, 0, 'b'},
+        {"octal", no_argument, 0, 'o'},
+        {"decimal", no_argument, 0, 'd'},
+        {"xml", no_argument, 0, 'x'},
+        {"tolower", no_argument, 0, 'L'},
+        {"toupper", no_argument, 0, 'U'},
+        {"totitle", no_argument, 0, 'T'},
+        {0}};
+        
+    while (1) {
+        const int opt = getopt_long(argc, argv, "pesbodxLUT", longopts, 0);
+        
+        if (opt == -1) {
+            break;
+        }
+        
+        switch (opt) {
+            case 'p':
+                cout << "Codepoint: " << valueRepresentation(codepoint, 'U') << endl;
+                break;
+            case 'e':
+                cout << "UTF-8: ";
+                for (uint i = 0; i < nbOfBytesInFirstChar; i++)
+                {
+                    cout << valueRepresentation(firstCharArray[i], 16) << " ";
+                }
+                cout << endl;
+                break;
+            case 's':
+                // https://en.wikipedia.org/wiki/UTF-16
+                cout << "UTF-16: ";
+                if (codepoint < 0xFFFF) // 2 bytes only
+                {
+                    cout << valueRepresentation(codepoint, 17);
+                }
+                else // 4 bytes
+                {
+                    utf8proc_int32_t intermediate = codepoint - 0x10000;
+                    utf8proc_int32_t shifted = intermediate >> 10; // Divide by 0x400 (1024)(2^10)
+                    utf8proc_int32_t highSurrogate = shifted +  0xD800;
+                    utf8proc_int32_t lowTenBits = intermediate % 0x400; // Same result with (intermediate & 1023)
+                    utf8proc_int32_t lowSurrogate = lowTenBits + 0xDC00;
+                    cout << valueRepresentation(highSurrogate, 17) << " ";
+                    cout << valueRepresentation(lowSurrogate, 17);
+                }
+                cout << endl;
+                break;
+            case 'b':
+                cout << "Binary: ";
+                for (uint i = 0; i < nbOfBytesInFirstChar; i++)
+                {
+                    cout << valueRepresentation(firstCharArray[i], 2) << " ";
+                }
+                cout << endl;
+                break;
+            case 'o':
+                cout << "Octal: ";
+                for (uint i = 0; i < nbOfBytesInFirstChar; i++)
+                {
+                    cout << valueRepresentation(firstCharArray[i], 8) << " ";
+                }
+                cout << endl;
+                break;
+            case 'd':
+                cout << "Decimal: ";
+                for (uint i = 0; i < nbOfBytesInFirstChar; i++)
+                {
+                    cout << valueRepresentation(firstCharArray[i], 10) << " ";
+                }
+                cout << endl;
+                break;
+            case 'x':
+                cout << "XML decimal: " << valueRepresentation(codepoint, 'x') << endl;
+                break;
+            case 'L':
+            {
+                utf8proc_int32_t lowerCodepoint = utf8proc_tolower(codepoint);
+                utf8proc_uint8_t dst[5];
+                utf8proc_ssize_t bytesWritten = utf8proc_encode_char(lowerCodepoint, &dst[0]);
+                dst[bytesWritten] = '\0';
+                cout << "To lower: " << (const char*) dst << endl;
+            }
+                break;
+            case 'U':
+            {
+                utf8proc_int32_t upperCodepoint = utf8proc_toupper(codepoint);
+                utf8proc_uint8_t dst[5];
+                utf8proc_ssize_t bytesWritten = utf8proc_encode_char( upperCodepoint, &dst[0]);
+                dst[bytesWritten] = '\0';
+                cout << "To upper: " << (const char*) dst << endl;
+            }
+                break;
+            case 'T':
+            {
+                utf8proc_int32_t upperCodepoint = utf8proc_totitle(codepoint);
+                utf8proc_uint8_t dst[5];
+                utf8proc_ssize_t bytesWritten = utf8proc_encode_char( upperCodepoint, &dst[0]);
+                dst[bytesWritten] = '\0';
+                cout << "To title: " << (const char*) dst << endl;
+            }
+                break;
+            case 'h':
+                representationShowHelp();
+                return 0;
+            case '?':
+                return 50; // -5 to -1 are reserved by utf8proc; their absolute values are used here.
+            default:
+                break;
+        }
+    }
+    // Show the processed character.
+    cout << "Character: " << (const char*) firstCharArray << endl;
+    return 0;
+}
+
 int main(int argc, char ** argv)
 {
-    const char * modeInfo = "A mode of operation is required: unaccent, normalize."
-     "Pass '--help' for more information on each mode.";
+    categoryDescription[UTF8PROC_CATEGORY_CN] = "Other, not assigned";
+    categoryDescription[UTF8PROC_CATEGORY_LU] = "Letter, uppercase";
+    categoryDescription[UTF8PROC_CATEGORY_LL] = "Letter, lowercase";
+    categoryDescription[UTF8PROC_CATEGORY_LT] = "Letter, titlecase";
+    categoryDescription[UTF8PROC_CATEGORY_LM] = "Letter, modifier";
+    categoryDescription[UTF8PROC_CATEGORY_LO] = "Letter, other";
+    categoryDescription[UTF8PROC_CATEGORY_MN] = "Mark, nonspacing";
+    categoryDescription[UTF8PROC_CATEGORY_MC] = "Mark, spacing combining";
+    categoryDescription[UTF8PROC_CATEGORY_ME] = "Mark, enclosing";
+    categoryDescription[UTF8PROC_CATEGORY_NL] = "Number, letter";
+    categoryDescription[UTF8PROC_CATEGORY_NO] = "Number, other";
+    categoryDescription[UTF8PROC_CATEGORY_PC] = "Punctuation, connector";
+    categoryDescription[UTF8PROC_CATEGORY_PD] = "Punctuation, dash";
+    categoryDescription[UTF8PROC_CATEGORY_PS] = "Punctuation, open";
+    categoryDescription[UTF8PROC_CATEGORY_PE] = "Punctuation, close";
+    categoryDescription[UTF8PROC_CATEGORY_PI] = "Punctuation, initial quote";
+    categoryDescription[UTF8PROC_CATEGORY_PF] = "Punctuation, final quote";
+    categoryDescription[UTF8PROC_CATEGORY_PO] = "Punctuation, other";
+    categoryDescription[UTF8PROC_CATEGORY_SM] = "Symbol, math";
+    categoryDescription[UTF8PROC_CATEGORY_SC] = "Symbol, currency";
+    categoryDescription[UTF8PROC_CATEGORY_SK] = "Symbol, modifier";
+    categoryDescription[UTF8PROC_CATEGORY_SO] = "Symbol, other";
+    categoryDescription[UTF8PROC_CATEGORY_ZS] = "Separator, space";
+    categoryDescription[UTF8PROC_CATEGORY_ZL] = "Separator, line";
+    categoryDescription[UTF8PROC_CATEGORY_ZP] = "Separator, paragraph";
+    categoryDescription[UTF8PROC_CATEGORY_CC] = "Other, control";
+    categoryDescription[UTF8PROC_CATEGORY_CF] = "Other, format";
+    categoryDescription[UTF8PROC_CATEGORY_CS] = "Other, surrogate";
+    categoryDescription[UTF8PROC_CATEGORY_CO] = "Other, private use";
+    
+    bidirectional[UTF8PROC_BIDI_CLASS_L] = "Left-to-Right";
+    bidirectional[UTF8PROC_BIDI_CLASS_LRE] = "Left-to-Right Embedding";
+    bidirectional[UTF8PROC_BIDI_CLASS_LRO] = "Left-to-Right Override";
+    bidirectional[UTF8PROC_BIDI_CLASS_R] = "Right-to-Left";
+    bidirectional[UTF8PROC_BIDI_CLASS_AL] = "Right-to-Left Arabic";
+    bidirectional[UTF8PROC_BIDI_CLASS_RLE] = "Right-to-Left Embedding";
+    bidirectional[UTF8PROC_BIDI_CLASS_RLO] = "Right-to-Left Override";
+    bidirectional[UTF8PROC_BIDI_CLASS_PDF] = "Pop Directional Format";
+    bidirectional[UTF8PROC_BIDI_CLASS_EN] = "European Number";
+    bidirectional[UTF8PROC_BIDI_CLASS_ES] = "European Separator";
+    bidirectional[UTF8PROC_BIDI_CLASS_ET] = "European Number Terminator";
+    bidirectional[UTF8PROC_BIDI_CLASS_AN] = "Arabic Number";
+    bidirectional[UTF8PROC_BIDI_CLASS_CS] = "Common Number Separator";
+    bidirectional[UTF8PROC_BIDI_CLASS_NSM] = "Nonspacing Mark";
+    bidirectional[UTF8PROC_BIDI_CLASS_BN] = "Boundary Neutral";
+    bidirectional[UTF8PROC_BIDI_CLASS_B] = "Paragraph Separator";
+    bidirectional[UTF8PROC_BIDI_CLASS_S] = "Segment Separator";
+    bidirectional[UTF8PROC_BIDI_CLASS_WS] = "Whitespace";
+    bidirectional[UTF8PROC_BIDI_CLASS_ON] = "Other Neutrals";
+    bidirectional[UTF8PROC_BIDI_CLASS_LRI] = "Left-to-Right Isolate";
+    bidirectional[UTF8PROC_BIDI_CLASS_RLI] = "Right-to-Left Isolate";
+    bidirectional[UTF8PROC_BIDI_CLASS_FSI] = "First Strong Isolate";
+    bidirectional[UTF8PROC_BIDI_CLASS_PDI] = "Pop Directional Isolate";
+    
+    // Whatever it means! But does it concern decomposed form only?
+    decompositionType[0] = "Unknown"; // property->decomp_type is 0 on all tested characters, decomposed or not.
+    decompositionType[UTF8PROC_DECOMP_TYPE_FONT] = "Font"; // Starts at 1.
+    decompositionType[UTF8PROC_DECOMP_TYPE_NOBREAK] = "Nobreak";
+    decompositionType[UTF8PROC_DECOMP_TYPE_INITIAL] = "Initial";
+    decompositionType[UTF8PROC_DECOMP_TYPE_MEDIAL] = "Medial";
+    decompositionType[UTF8PROC_DECOMP_TYPE_FINAL] = "Final";
+    decompositionType[UTF8PROC_DECOMP_TYPE_ISOLATED] = "Isolated";
+    decompositionType[UTF8PROC_DECOMP_TYPE_CIRCLE] = "Circle";
+    decompositionType[UTF8PROC_DECOMP_TYPE_SUPER] = "Super";
+    decompositionType[UTF8PROC_DECOMP_TYPE_SUB] = "Sub";
+    decompositionType[UTF8PROC_DECOMP_TYPE_VERTICAL] = "Vertical";
+    decompositionType[UTF8PROC_DECOMP_TYPE_WIDE] = "Wide";
+    decompositionType[UTF8PROC_DECOMP_TYPE_NARROW] = "Narrow";
+    decompositionType[UTF8PROC_DECOMP_TYPE_SMALL] = "Small";
+    decompositionType[UTF8PROC_DECOMP_TYPE_SQUARE] = "Square";
+    decompositionType[UTF8PROC_DECOMP_TYPE_FRACTION] = "Fraction";
+    decompositionType[UTF8PROC_DECOMP_TYPE_COMPAT] = "Compat";
+    
+    // Whatever most values mean!
+    boundClass[UTF8PROC_BOUNDCLASS_START] =  "Start";
+    boundClass[UTF8PROC_BOUNDCLASS_OTHER] =  "Other";
+    boundClass[UTF8PROC_BOUNDCLASS_CR] =  "Cr";
+    boundClass[UTF8PROC_BOUNDCLASS_LF] =  "Lf";
+    boundClass[UTF8PROC_BOUNDCLASS_CONTROL] =  "Control";
+    boundClass[UTF8PROC_BOUNDCLASS_EXTEND] =  "Extend";
+    boundClass[UTF8PROC_BOUNDCLASS_L] =  "L";
+    boundClass[UTF8PROC_BOUNDCLASS_V] =  "V";
+    boundClass[UTF8PROC_BOUNDCLASS_T] =  "T";
+    boundClass[UTF8PROC_BOUNDCLASS_LV] =  "Lv";
+    boundClass[UTF8PROC_BOUNDCLASS_LVT] = "Lvt";
+    boundClass[UTF8PROC_BOUNDCLASS_REGIONAL_INDICATOR] = "Regional indicator";
+    boundClass[UTF8PROC_BOUNDCLASS_SPACINGMARK] = "Spacingmark";
+    boundClass[UTF8PROC_BOUNDCLASS_PREPEND] = "Prepend";
+    boundClass[UTF8PROC_BOUNDCLASS_ZWJ] = "Zero Width Joiner";
+    boundClass[UTF8PROC_BOUNDCLASS_E_BASE] = "Emoji Base";
+    boundClass[UTF8PROC_BOUNDCLASS_E_MODIFIER] = "Emoji Modifier";
+    boundClass[UTF8PROC_BOUNDCLASS_GLUE_AFTER_ZWJ] = "Glue_After_ZWJ";
+    boundClass[UTF8PROC_BOUNDCLASS_E_BASE_GAZ] = "E_BASE + GLUE_AFTER_ZJW";
+    boundClass[UTF8PROC_BOUNDCLASS_EXTENDED_PICTOGRAPHIC] = "Extended_Pictographic",
+    boundClass[UTF8PROC_BOUNDCLASS_E_ZWG] = "UTF8PROC_BOUNDCLASS_EXTENDED_PICTOGRAPHIC + ZWJ";
+    
+    const char * modeInfo = "A mode of operation is required: unaccent, normalize, representation."
+     "\nPass '--help' for more information in each mode.";
     const int sargc = argc - 1;
     if (sargc == 0)
     {
@@ -220,6 +529,10 @@ int main(int argc, char ** argv)
     else if (mode == "normalize")
     {
         ret = normalize(sargc, sargv);
+    }
+    else if (mode == "representation")
+    {
+        ret = representation (sargc, sargv);
     }
     else
     {
