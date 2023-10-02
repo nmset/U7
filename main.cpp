@@ -1,7 +1,7 @@
 /*
  * File:   main.cpp
  * Author: Saleem Edah-Tally - nmset@yandex.com
- * License: CeCILL-C
+ * License: CeCILL
  * Copyright: Saleem Edah-Tally - © 2023
  *
  * Created on 20 september 2023, 18:31
@@ -12,10 +12,15 @@
 #include <utf8proc.h>
 #include <format>
 #include <map>
+#include <libintl.h>
 
 using namespace std;
 
 #define STRIP_OPTIONS_DEFAULT (UTF8PROC_IGNORE | UTF8PROC_STRIPCC | UTF8PROC_STRIPMARK | UTF8PROC_STRIPNA | UTF8PROC_DECOMPOSE | UTF8PROC_STABLE | UTF8PROC_NULLTERM)
+//https://www.labri.fr/perso/fleury/posts/programming/a-quick-gettext-tutorial.html
+#define _(STRING) gettext(STRING)
+#define _APPNAME_ "utf8util"
+#define _APPVERSION_ 1
 
 typedef map<int, string> KeyValuePair;
 // Described in utf8proc.h.
@@ -51,7 +56,7 @@ string valueRepresentation(long nb, int baseHint) {
             formatted = std::format("{}{:d}{}","&#", nb, ";");
             break;
         default:
-            cout << "Unhandled base: " << baseHint << endl;
+            cout << _("Unhandled base: ") << baseHint << endl;
             return "";
     }
     
@@ -60,7 +65,7 @@ string valueRepresentation(long nb, int baseHint) {
 
 void unaccentShowHelp()
 {
-    string message("This operational mode removes character markings, control characters, default ignorable characters and unassigned codepoints from an UTF-8 input."
+    string message = _("This operational mode removes character markings, control characters, default ignorable characters and unassigned codepoints from an UTF-8 input."
     "The utf8proc library, on which this utility is based, refers to character markings as 'non-spacing, spacing and enclosing (accents)' marks, and to default ignorable characters 'such as SOFT-HYPHEN or ZERO-WIDTH-SPACE'. Control characters are stripped or converted to spaces."
     "\n\nBy default, every removable byte is stripped, the output characters are decomposed and Unicode Versioning Stability is enforced."
     "\n\n  -i, --ignore: do not strip 'default ignorable characters'"
@@ -76,7 +81,7 @@ void unaccentShowHelp()
 
 void normalizeShowHelp()
 {
-    string message("This operational mode normalizes the input string according to the specified type, the default being NFC."
+    string message = _("This operational mode normalizes the input string according to the specified type, the default being NFC."
     "\n\n  -t, --type: one of NFC, NFD, NFKC, NFKD, NFKC_Casefold"
     "\n  -h, --help: show this message"
     "\n\nThe input can be piped in or read from stdin. It must be a single NULL terminated line.");
@@ -86,7 +91,7 @@ void normalizeShowHelp()
 
 void representationShowHelp()
 {
-    string message("This operational mode displays representations of the first identified codepoint."
+    string message = _("This operational mode displays representations of the first identified codepoint."
     "\n\n  -p, --codepoint: hexadecimal representation of the codepoint"
     "\n  -e, --utf8: hexadecimal representation of each byte"
     "\n  -s, --utf16: hexadecimal representation of each surrogate"
@@ -105,7 +110,7 @@ void representationShowHelp()
 
 void propertiesShowHelp()
 {
-    string message("This operational mode displays properties of the first identified codepoint."
+    string message = _("This operational mode displays properties of the first identified codepoint."
     "\n\n  -l, --islower: displays 1 if the codepoint refers to a lower-case character, 0 otherwise"
     "\n  -u, --isupper: displays 1 if the codepoint refers to an upper-case character, 0 otherwise"
     "\n  -c, --category: determines the category of a codepoint (Letter, Number, Symbol...)"
@@ -252,7 +257,7 @@ int normalize(int argc, char ** argv)
     }
     else
     {
-        cout << "Unknown type; valid types are NFC, NFD, NFKC, NFKD and NFKC_Casefold." << endl;
+        cout << _("Unknown type; valid types are NFC, NFD, NFKC, NFKD and NFKC_Casefold.") << endl;
         return 41;
     }
     
@@ -292,7 +297,7 @@ int representation(int argc, char ** argv)
     utf8proc_ssize_t nbOfBytesInFirstChar = utf8proc_encode_char(codepoint, firstCharArray);
     if (nbOfBytesInFirstChar == 0)
     {
-        cout << "No valid bytes at start of input." << endl;
+        cout << _("No valid bytes at start of input.") << endl;
         return 51;
     }
     firstCharArray[nbOfBytesInFirstChar] = '\0';
@@ -319,7 +324,7 @@ int representation(int argc, char ** argv)
         
         switch (opt) {
             case 'p':
-                cout << "Codepoint: " << valueRepresentation(codepoint, 'U') << endl;
+                cout << _("Codepoint: ") << valueRepresentation(codepoint, 'U') << endl;
                 break;
             case 'e':
                 cout << "UTF-8: ";
@@ -349,7 +354,7 @@ int representation(int argc, char ** argv)
                 cout << endl;
                 break;
             case 'b':
-                cout << "Binary: ";
+                cout << _("Binary: ");
                 for (uint i = 0; i < nbOfBytesInFirstChar; i++)
                 {
                     cout << valueRepresentation(firstCharArray[i], 2) << " ";
@@ -357,7 +362,7 @@ int representation(int argc, char ** argv)
                 cout << endl;
                 break;
             case 'o':
-                cout << "Octal: ";
+                cout << _("Octal: ");
                 for (uint i = 0; i < nbOfBytesInFirstChar; i++)
                 {
                     cout << valueRepresentation(firstCharArray[i], 8) << " ";
@@ -365,7 +370,7 @@ int representation(int argc, char ** argv)
                 cout << endl;
                 break;
             case 'd':
-                cout << "Decimal: ";
+                cout << _("Decimal: ");
                 for (uint i = 0; i < nbOfBytesInFirstChar; i++)
                 {
                     cout << valueRepresentation(firstCharArray[i], 10) << " ";
@@ -373,7 +378,7 @@ int representation(int argc, char ** argv)
                 cout << endl;
                 break;
             case 'x':
-                cout << "XML decimal: " << valueRepresentation(codepoint, 'x') << endl;
+                cout << _("XML decimal: ") << valueRepresentation(codepoint, 'x') << endl;
                 break;
             case 'L':
             {
@@ -381,7 +386,7 @@ int representation(int argc, char ** argv)
                 utf8proc_uint8_t dst[5];
                 utf8proc_ssize_t bytesWritten = utf8proc_encode_char(lowerCodepoint, &dst[0]);
                 dst[bytesWritten] = '\0';
-                cout << "To lower: " << (const char*) dst << endl;
+                cout << _("To lower: ") << (const char*) dst << endl;
             }
                 break;
             case 'U':
@@ -390,7 +395,7 @@ int representation(int argc, char ** argv)
                 utf8proc_uint8_t dst[5];
                 utf8proc_ssize_t bytesWritten = utf8proc_encode_char( upperCodepoint, &dst[0]);
                 dst[bytesWritten] = '\0';
-                cout << "To upper: " << (const char*) dst << endl;
+                cout << _("To upper: ") << (const char*) dst << endl;
             }
                 break;
             case 'T':
@@ -399,7 +404,7 @@ int representation(int argc, char ** argv)
                 utf8proc_uint8_t dst[5];
                 utf8proc_ssize_t bytesWritten = utf8proc_encode_char( upperCodepoint, &dst[0]);
                 dst[bytesWritten] = '\0';
-                cout << "To title: " << (const char*) dst << endl;
+                cout << _("To title: ") << (const char*) dst << endl;
             }
                 break;
             case 'h':
@@ -412,7 +417,7 @@ int representation(int argc, char ** argv)
         }
     }
     // Show the processed character.
-    cout << "Character: " << (const char*) firstCharArray << endl;
+    cout << _("Character: ") << (const char*) firstCharArray << endl;
     return 0;
 }
 
@@ -443,7 +448,7 @@ int properties(int argc, char ** argv)
     utf8proc_ssize_t nbOfBytesInFirstChar = utf8proc_encode_char(codepoint, firstCharArray);
     if (nbOfBytesInFirstChar == 0)
     {
-        cout << "No valid bytes at start of input." << endl;
+        cout << _("No valid bytes at start of input.") << endl;
         return 51;
     }
     firstCharArray[nbOfBytesInFirstChar] = '\0';
@@ -466,35 +471,35 @@ int properties(int argc, char ** argv)
             
             switch (opt) {
                 case 'l':
-                    cout << "Is lower: " << utf8proc_islower(codepoint) << endl;
+                    cout << _("Is lower: ") << utf8proc_islower(codepoint) << endl;
                     break;
                 case 'u':
-                    cout << "Is upper: " << utf8proc_isupper(codepoint) << endl;
+                    cout << _("Is upper: ") << utf8proc_isupper(codepoint) << endl;
                     break;
                 case 'c':
                 {
                     utf8proc_category_t category = utf8proc_category(codepoint);
-                    cout << "Category: [" << utf8proc_category_string(codepoint) << "] ";
+                    cout << _("Category: [") << utf8proc_category_string(codepoint) << "] ";
                     cout << categoryDescription[category] << endl;
                 }
                 break;
                 case 'd':
                 {
                     const utf8proc_property_t * property = utf8proc_get_property(codepoint);
-                    cout << "Direction: " << bidirectional[property->bidi_class] << endl;
+                    cout << _("Direction: ") << bidirectional[property->bidi_class] << endl;
                 }
                 break;
                 case 'i':
                 {
                     const utf8proc_property_t * property = utf8proc_get_property(codepoint);
-                    cout << "Decomposition type: " << decompositionType[property->decomp_type] << endl;
+                    cout << _("Decomposition type: ") << decompositionType[property->decomp_type] << endl;
                 }
                 break;
                 case 'b':
                 {
                     // property->boundclass is 1 (other) on all tested characters.
                     const utf8proc_property_t * property = utf8proc_get_property(codepoint);
-                    cout << "Bound class: " << boundClass[property->boundclass] << endl;
+                    cout << _("Bound class: ") << boundClass[property->boundclass] << endl;
                 }
                 break;
                 case 'h':
@@ -507,107 +512,113 @@ int properties(int argc, char ** argv)
             }
         }
         // Show the processed character.
-        cout << "Character: " << (const char*) firstCharArray << endl;
+        cout << _("Character: ") << (const char*) firstCharArray << endl;
         return 0;
 }
 
 int main(int argc, char ** argv)
 {
-    categoryDescription[UTF8PROC_CATEGORY_CN] = "Other, not assigned";
-    categoryDescription[UTF8PROC_CATEGORY_LU] = "Letter, uppercase";
-    categoryDescription[UTF8PROC_CATEGORY_LL] = "Letter, lowercase";
-    categoryDescription[UTF8PROC_CATEGORY_LT] = "Letter, titlecase";
-    categoryDescription[UTF8PROC_CATEGORY_LM] = "Letter, modifier";
-    categoryDescription[UTF8PROC_CATEGORY_LO] = "Letter, other";
-    categoryDescription[UTF8PROC_CATEGORY_MN] = "Mark, nonspacing";
-    categoryDescription[UTF8PROC_CATEGORY_MC] = "Mark, spacing combining";
-    categoryDescription[UTF8PROC_CATEGORY_ME] = "Mark, enclosing";
-    categoryDescription[UTF8PROC_CATEGORY_NL] = "Number, letter";
-    categoryDescription[UTF8PROC_CATEGORY_NO] = "Number, other";
-    categoryDescription[UTF8PROC_CATEGORY_PC] = "Punctuation, connector";
-    categoryDescription[UTF8PROC_CATEGORY_PD] = "Punctuation, dash";
-    categoryDescription[UTF8PROC_CATEGORY_PS] = "Punctuation, open";
-    categoryDescription[UTF8PROC_CATEGORY_PE] = "Punctuation, close";
-    categoryDescription[UTF8PROC_CATEGORY_PI] = "Punctuation, initial quote";
-    categoryDescription[UTF8PROC_CATEGORY_PF] = "Punctuation, final quote";
-    categoryDescription[UTF8PROC_CATEGORY_PO] = "Punctuation, other";
-    categoryDescription[UTF8PROC_CATEGORY_SM] = "Symbol, math";
-    categoryDescription[UTF8PROC_CATEGORY_SC] = "Symbol, currency";
-    categoryDescription[UTF8PROC_CATEGORY_SK] = "Symbol, modifier";
-    categoryDescription[UTF8PROC_CATEGORY_SO] = "Symbol, other";
-    categoryDescription[UTF8PROC_CATEGORY_ZS] = "Separator, space";
-    categoryDescription[UTF8PROC_CATEGORY_ZL] = "Separator, line";
-    categoryDescription[UTF8PROC_CATEGORY_ZP] = "Separator, paragraph";
-    categoryDescription[UTF8PROC_CATEGORY_CC] = "Other, control";
-    categoryDescription[UTF8PROC_CATEGORY_CF] = "Other, format";
-    categoryDescription[UTF8PROC_CATEGORY_CS] = "Other, surrogate";
-    categoryDescription[UTF8PROC_CATEGORY_CO] = "Other, private use";
+    setlocale (LC_ALL, "");
+    // TODO: Avoid hardcoding the path
+    bindtextdomain (_APPNAME_, "/usr/local/share/locale"); // containing <language_code>/LC_MESSAGES/
+    textdomain (_APPNAME_);
     
-    bidirectional[UTF8PROC_BIDI_CLASS_L] = "Left-to-Right";
-    bidirectional[UTF8PROC_BIDI_CLASS_LRE] = "Left-to-Right Embedding";
-    bidirectional[UTF8PROC_BIDI_CLASS_LRO] = "Left-to-Right Override";
-    bidirectional[UTF8PROC_BIDI_CLASS_R] = "Right-to-Left";
-    bidirectional[UTF8PROC_BIDI_CLASS_AL] = "Right-to-Left Arabic";
-    bidirectional[UTF8PROC_BIDI_CLASS_RLE] = "Right-to-Left Embedding";
-    bidirectional[UTF8PROC_BIDI_CLASS_RLO] = "Right-to-Left Override";
-    bidirectional[UTF8PROC_BIDI_CLASS_PDF] = "Pop Directional Format";
-    bidirectional[UTF8PROC_BIDI_CLASS_EN] = "European Number";
-    bidirectional[UTF8PROC_BIDI_CLASS_ES] = "European Separator";
-    bidirectional[UTF8PROC_BIDI_CLASS_ET] = "European Number Terminator";
-    bidirectional[UTF8PROC_BIDI_CLASS_AN] = "Arabic Number";
-    bidirectional[UTF8PROC_BIDI_CLASS_CS] = "Common Number Separator";
-    bidirectional[UTF8PROC_BIDI_CLASS_NSM] = "Nonspacing Mark";
-    bidirectional[UTF8PROC_BIDI_CLASS_BN] = "Boundary Neutral";
-    bidirectional[UTF8PROC_BIDI_CLASS_B] = "Paragraph Separator";
-    bidirectional[UTF8PROC_BIDI_CLASS_S] = "Segment Separator";
-    bidirectional[UTF8PROC_BIDI_CLASS_WS] = "Whitespace";
-    bidirectional[UTF8PROC_BIDI_CLASS_ON] = "Other Neutrals";
-    bidirectional[UTF8PROC_BIDI_CLASS_LRI] = "Left-to-Right Isolate";
-    bidirectional[UTF8PROC_BIDI_CLASS_RLI] = "Right-to-Left Isolate";
-    bidirectional[UTF8PROC_BIDI_CLASS_FSI] = "First Strong Isolate";
-    bidirectional[UTF8PROC_BIDI_CLASS_PDI] = "Pop Directional Isolate";
+    // Translatable, but we won't do it on our own.
+    categoryDescription[UTF8PROC_CATEGORY_CN] = _("Other, not assigned");
+    categoryDescription[UTF8PROC_CATEGORY_LU] = _("Letter, uppercase");
+    categoryDescription[UTF8PROC_CATEGORY_LL] = _("Letter, lowercase");
+    categoryDescription[UTF8PROC_CATEGORY_LT] = _("Letter, titlecase");
+    categoryDescription[UTF8PROC_CATEGORY_LM] = _("Letter, modifier");
+    categoryDescription[UTF8PROC_CATEGORY_LO] = _("Letter, other");
+    categoryDescription[UTF8PROC_CATEGORY_MN] = _("Mark, nonspacing");
+    categoryDescription[UTF8PROC_CATEGORY_MC] = _("Mark, spacing combining");
+    categoryDescription[UTF8PROC_CATEGORY_ME] = _("Mark, enclosing");
+    categoryDescription[UTF8PROC_CATEGORY_NL] = _("Number, letter");
+    categoryDescription[UTF8PROC_CATEGORY_NO] = _("Number, other");
+    categoryDescription[UTF8PROC_CATEGORY_PC] = _("Punctuation, connector");
+    categoryDescription[UTF8PROC_CATEGORY_PD] = _("Punctuation, dash");
+    categoryDescription[UTF8PROC_CATEGORY_PS] = _("Punctuation, open");
+    categoryDescription[UTF8PROC_CATEGORY_PE] = _("Punctuation, close");
+    categoryDescription[UTF8PROC_CATEGORY_PI] = _("Punctuation, initial quote");
+    categoryDescription[UTF8PROC_CATEGORY_PF] = _("Punctuation, final quote");
+    categoryDescription[UTF8PROC_CATEGORY_PO] = _("Punctuation, other");
+    categoryDescription[UTF8PROC_CATEGORY_SM] = _("Symbol, math");
+    categoryDescription[UTF8PROC_CATEGORY_SC] = _("Symbol, currency");
+    categoryDescription[UTF8PROC_CATEGORY_SK] = _("Symbol, modifier");
+    categoryDescription[UTF8PROC_CATEGORY_SO] = _("Symbol, other");
+    categoryDescription[UTF8PROC_CATEGORY_ZS] = _("Separator, space");
+    categoryDescription[UTF8PROC_CATEGORY_ZL] = _("Separator, line");
+    categoryDescription[UTF8PROC_CATEGORY_ZP] = _("Separator, paragraph");
+    categoryDescription[UTF8PROC_CATEGORY_CC] = _("Other, control");
+    categoryDescription[UTF8PROC_CATEGORY_CF] = _("Other, format");
+    categoryDescription[UTF8PROC_CATEGORY_CS] = _("Other, surrogate");
+    categoryDescription[UTF8PROC_CATEGORY_CO] = _("Other, private use");
+    
+    bidirectional[UTF8PROC_BIDI_CLASS_L] = _("Left-to-Right");
+    bidirectional[UTF8PROC_BIDI_CLASS_LRE] = _("Left-to-Right Embedding");
+    bidirectional[UTF8PROC_BIDI_CLASS_LRO] = _("Left-to-Right Override");
+    bidirectional[UTF8PROC_BIDI_CLASS_R] = _("Right-to-Left");
+    bidirectional[UTF8PROC_BIDI_CLASS_AL] = _("Right-to-Left Arabic");
+    bidirectional[UTF8PROC_BIDI_CLASS_RLE] = _("Right-to-Left Embedding");
+    bidirectional[UTF8PROC_BIDI_CLASS_RLO] = _("Right-to-Left Override");
+    bidirectional[UTF8PROC_BIDI_CLASS_PDF] = _("Pop Directional Format");
+    bidirectional[UTF8PROC_BIDI_CLASS_EN] = _("European Number");
+    bidirectional[UTF8PROC_BIDI_CLASS_ES] = _("European Separator");
+    bidirectional[UTF8PROC_BIDI_CLASS_ET] = _("European Number Terminator");
+    bidirectional[UTF8PROC_BIDI_CLASS_AN] = _("Arabic Number");
+    bidirectional[UTF8PROC_BIDI_CLASS_CS] = _("Common Number Separator");
+    bidirectional[UTF8PROC_BIDI_CLASS_NSM] = _("Nonspacing Mark");
+    bidirectional[UTF8PROC_BIDI_CLASS_BN] = _("Boundary Neutral");
+    bidirectional[UTF8PROC_BIDI_CLASS_B] = _("Paragraph Separator");
+    bidirectional[UTF8PROC_BIDI_CLASS_S] = _("Segment Separator");
+    bidirectional[UTF8PROC_BIDI_CLASS_WS] = _("Whitespace");
+    bidirectional[UTF8PROC_BIDI_CLASS_ON] = _("Other Neutrals");
+    bidirectional[UTF8PROC_BIDI_CLASS_LRI] = _("Left-to-Right Isolate");
+    bidirectional[UTF8PROC_BIDI_CLASS_RLI] = _("Right-to-Left Isolate");
+    bidirectional[UTF8PROC_BIDI_CLASS_FSI] = _("First Strong Isolate");
+    bidirectional[UTF8PROC_BIDI_CLASS_PDI] = _("Pop Directional Isolate");
     
     // Whatever it means! But does it concern decomposed form only?
-    decompositionType[0] = "Unknown"; // property->decomp_type is 0 on all tested characters, decomposed or not.
-    decompositionType[UTF8PROC_DECOMP_TYPE_FONT] = "Font"; // Starts at 1.
-    decompositionType[UTF8PROC_DECOMP_TYPE_NOBREAK] = "Nobreak";
-    decompositionType[UTF8PROC_DECOMP_TYPE_INITIAL] = "Initial";
-    decompositionType[UTF8PROC_DECOMP_TYPE_MEDIAL] = "Medial";
-    decompositionType[UTF8PROC_DECOMP_TYPE_FINAL] = "Final";
-    decompositionType[UTF8PROC_DECOMP_TYPE_ISOLATED] = "Isolated";
-    decompositionType[UTF8PROC_DECOMP_TYPE_CIRCLE] = "Circle";
-    decompositionType[UTF8PROC_DECOMP_TYPE_SUPER] = "Super";
-    decompositionType[UTF8PROC_DECOMP_TYPE_SUB] = "Sub";
-    decompositionType[UTF8PROC_DECOMP_TYPE_VERTICAL] = "Vertical";
-    decompositionType[UTF8PROC_DECOMP_TYPE_WIDE] = "Wide";
-    decompositionType[UTF8PROC_DECOMP_TYPE_NARROW] = "Narrow";
-    decompositionType[UTF8PROC_DECOMP_TYPE_SMALL] = "Small";
-    decompositionType[UTF8PROC_DECOMP_TYPE_SQUARE] = "Square";
-    decompositionType[UTF8PROC_DECOMP_TYPE_FRACTION] = "Fraction";
-    decompositionType[UTF8PROC_DECOMP_TYPE_COMPAT] = "Compat";
+    decompositionType[0] = _("Unknown"); // property->decomp_type is 0 on all tested characters, decomposed or not.
+    decompositionType[UTF8PROC_DECOMP_TYPE_FONT] = _("Font"); // Starts at 1.
+    decompositionType[UTF8PROC_DECOMP_TYPE_NOBREAK] = _("Nobreak");
+    decompositionType[UTF8PROC_DECOMP_TYPE_INITIAL] = _("Initial");
+    decompositionType[UTF8PROC_DECOMP_TYPE_MEDIAL] = _("Medial");
+    decompositionType[UTF8PROC_DECOMP_TYPE_FINAL] = _("Final");
+    decompositionType[UTF8PROC_DECOMP_TYPE_ISOLATED] = _("Isolated");
+    decompositionType[UTF8PROC_DECOMP_TYPE_CIRCLE] = _("Circle");
+    decompositionType[UTF8PROC_DECOMP_TYPE_SUPER] = _("Super");
+    decompositionType[UTF8PROC_DECOMP_TYPE_SUB] = _("Sub");
+    decompositionType[UTF8PROC_DECOMP_TYPE_VERTICAL] = _("Vertical");
+    decompositionType[UTF8PROC_DECOMP_TYPE_WIDE] = _("Wide");
+    decompositionType[UTF8PROC_DECOMP_TYPE_NARROW] = _("Narrow");
+    decompositionType[UTF8PROC_DECOMP_TYPE_SMALL] = _("Small");
+    decompositionType[UTF8PROC_DECOMP_TYPE_SQUARE] = _("Square");
+    decompositionType[UTF8PROC_DECOMP_TYPE_FRACTION] = _("Fraction");
+    decompositionType[UTF8PROC_DECOMP_TYPE_COMPAT] = _("Compat");
     
     // Whatever most values mean!
-    boundClass[UTF8PROC_BOUNDCLASS_START] =  "Start";
-    boundClass[UTF8PROC_BOUNDCLASS_OTHER] =  "Other";
-    boundClass[UTF8PROC_BOUNDCLASS_CR] =  "Cr";
-    boundClass[UTF8PROC_BOUNDCLASS_LF] =  "Lf";
-    boundClass[UTF8PROC_BOUNDCLASS_CONTROL] =  "Control";
-    boundClass[UTF8PROC_BOUNDCLASS_EXTEND] =  "Extend";
-    boundClass[UTF8PROC_BOUNDCLASS_L] =  "L";
-    boundClass[UTF8PROC_BOUNDCLASS_V] =  "V";
-    boundClass[UTF8PROC_BOUNDCLASS_T] =  "T";
-    boundClass[UTF8PROC_BOUNDCLASS_LV] =  "Lv";
-    boundClass[UTF8PROC_BOUNDCLASS_LVT] = "Lvt";
-    boundClass[UTF8PROC_BOUNDCLASS_REGIONAL_INDICATOR] = "Regional indicator";
-    boundClass[UTF8PROC_BOUNDCLASS_SPACINGMARK] = "Spacingmark";
-    boundClass[UTF8PROC_BOUNDCLASS_PREPEND] = "Prepend";
-    boundClass[UTF8PROC_BOUNDCLASS_ZWJ] = "Zero Width Joiner";
-    boundClass[UTF8PROC_BOUNDCLASS_E_BASE] = "Emoji Base";
-    boundClass[UTF8PROC_BOUNDCLASS_E_MODIFIER] = "Emoji Modifier";
-    boundClass[UTF8PROC_BOUNDCLASS_GLUE_AFTER_ZWJ] = "Glue_After_ZWJ";
-    boundClass[UTF8PROC_BOUNDCLASS_E_BASE_GAZ] = "E_BASE + GLUE_AFTER_ZJW";
-    boundClass[UTF8PROC_BOUNDCLASS_EXTENDED_PICTOGRAPHIC] = "Extended_Pictographic";
-    boundClass[UTF8PROC_BOUNDCLASS_E_ZWG] = "UTF8PROC_BOUNDCLASS_EXTENDED_PICTOGRAPHIC + ZWJ";
+    boundClass[UTF8PROC_BOUNDCLASS_START] =  _("Start");
+    boundClass[UTF8PROC_BOUNDCLASS_OTHER] =  _("Other");
+    boundClass[UTF8PROC_BOUNDCLASS_CR] =  _("Cr");
+    boundClass[UTF8PROC_BOUNDCLASS_LF] =  _("Lf");
+    boundClass[UTF8PROC_BOUNDCLASS_CONTROL] =  _("Control");
+    boundClass[UTF8PROC_BOUNDCLASS_EXTEND] =  _("Extend");
+    boundClass[UTF8PROC_BOUNDCLASS_L] =  _("L");
+    boundClass[UTF8PROC_BOUNDCLASS_V] =  _("V");
+    boundClass[UTF8PROC_BOUNDCLASS_T] =  _("T");
+    boundClass[UTF8PROC_BOUNDCLASS_LV] =  _("Lv");
+    boundClass[UTF8PROC_BOUNDCLASS_LVT] = _("Lvt");
+    boundClass[UTF8PROC_BOUNDCLASS_REGIONAL_INDICATOR] = _("Regional indicator");
+    boundClass[UTF8PROC_BOUNDCLASS_SPACINGMARK] = _("Spacingmark");
+    boundClass[UTF8PROC_BOUNDCLASS_PREPEND] = _("Prepend");
+    boundClass[UTF8PROC_BOUNDCLASS_ZWJ] = _("Zero Width Joiner");
+    boundClass[UTF8PROC_BOUNDCLASS_E_BASE] = _("Emoji Base");
+    boundClass[UTF8PROC_BOUNDCLASS_E_MODIFIER] = _("Emoji Modifier");
+    boundClass[UTF8PROC_BOUNDCLASS_GLUE_AFTER_ZWJ] = _("Glue_After_ZWJ");
+    boundClass[UTF8PROC_BOUNDCLASS_E_BASE_GAZ] = _("E_BASE + GLUE_AFTER_ZJW");
+    boundClass[UTF8PROC_BOUNDCLASS_EXTENDED_PICTOGRAPHIC] = _("Extended_Pictographic");
+    boundClass[UTF8PROC_BOUNDCLASS_E_ZWG] = _("UTF8PROC_BOUNDCLASS_EXTENDED_PICTOGRAPHIC + ZWJ");
     
     const char * modeInfo = "A mode of operation is required: unaccent, normalize, representation, properties."
      "\nPass '--help' for more information in each mode.";
