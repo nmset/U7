@@ -103,6 +103,21 @@ void representationShowHelp()
     cout << message << endl;
 }
 
+void propertiesShowHelp()
+{
+    string message("This operational mode displays properties of the first identified codepoint."
+    "\n\n  -l, --islower: displays 1 if the codepoint refers to a lower-case character, 0 otherwise"
+    "\n  -u, --isupper: displays 1 if the codepoint refers to an upper-case character, 0 otherwise"
+    "\n  -c, --category: determines the category of a codepoint (Letter, Number, Symbol...)"
+    "\n  -n, --direction: determines the bidirectional class of a codepoint; see utf8proc.h"
+    "\n  -i, --decompositiontype: determines the decomposition type of a codepoint; see utf8proc.h"
+    "\n  -k, --boundclass: determines the boundclass property of a codepoint; see utf8proc.h"
+    "\n  -h, --help: show this message"
+    "\n\nThe input can be piped in or read from stdin. Pass in a single character for simplicity.");
+    
+    cout << message << endl;
+}
+
 int unaccent(int argc, char **argv) {
     string input;
     int options  = STRIP_OPTIONS_DEFAULT;
@@ -401,6 +416,101 @@ int representation(int argc, char ** argv)
     return 0;
 }
 
+int properties(int argc, char ** argv)
+{
+    for (uint i = 0; i < argc; i++)
+    {
+        string arg = argv[i];
+        if (arg == "-h" || arg == "--help")
+        {
+            propertiesShowHelp();
+            return 0;
+        }
+    }
+    
+    utf8proc_int32_t codepoint = 0;
+    string input;
+    cin >> input;
+    const utf8proc_uint8_t * inputArray = (const utf8proc_uint8_t *) input.c_str();
+    // This stops at the first codepoint; with 'عَ', the first retrieved codepoint is 'ع'.
+    utf8proc_ssize_t nb = utf8proc_iterate(&inputArray[0], -1, &codepoint);
+    if (nb < 0)
+    {
+        cout << utf8proc_errmsg(nb) << endl;
+        return nb * -1;
+    }
+    utf8proc_uint8_t firstCharArray[5];
+    utf8proc_ssize_t nbOfBytesInFirstChar = utf8proc_encode_char(codepoint, firstCharArray);
+    if (nbOfBytesInFirstChar == 0)
+    {
+        cout << "No valid bytes at start of input." << endl;
+        return 51;
+    }
+    firstCharArray[nbOfBytesInFirstChar] = '\0';
+    
+    option longopts[] = {
+        {"islower", no_argument, 0, 'l'},
+        {"isupper", no_argument, 0, 'u'},
+        {"category", no_argument, 0, 'c'},
+        {"direction", no_argument, 0, 'd'},
+        {"decompositiontype", no_argument, 0, 'i'}, // decompos'i'tion
+        {"boundclass", no_argument, 0, 'b'},
+        {0}};
+        
+        while (1) {
+            const int opt = getopt_long(argc, argv, "lucdib", longopts, 0);
+            
+            if (opt == -1) {
+                break;
+            }
+            
+            switch (opt) {
+                case 'l':
+                    cout << "Is lower: " << utf8proc_islower(codepoint) << endl;
+                    break;
+                case 'u':
+                    cout << "Is upper: " << utf8proc_isupper(codepoint) << endl;
+                    break;
+                case 'c':
+                {
+                    utf8proc_category_t category = utf8proc_category(codepoint);
+                    cout << "Category: [" << utf8proc_category_string(codepoint) << "] ";
+                    cout << categoryDescription[category] << endl;
+                }
+                break;
+                case 'd':
+                {
+                    const utf8proc_property_t * property = utf8proc_get_property(codepoint);
+                    cout << "Direction: " << bidirectional[property->bidi_class] << endl;
+                }
+                break;
+                case 'i':
+                {
+                    const utf8proc_property_t * property = utf8proc_get_property(codepoint);
+                    cout << "Decomposition type: " << decompositionType[property->decomp_type] << endl;
+                }
+                break;
+                case 'b':
+                {
+                    // property->boundclass is 1 (other) on all tested characters.
+                    const utf8proc_property_t * property = utf8proc_get_property(codepoint);
+                    cout << "Bound class: " << boundClass[property->boundclass] << endl;
+                }
+                break;
+                case 'h':
+                    representationShowHelp();
+                    return 0;
+                case '?':
+                    return 50; // -5 to -1 are reserved by utf8proc; their absolute values are used here.
+                default:
+                    break;
+            }
+        }
+        // Show the processed character.
+        cout << "Character: " << (const char*) firstCharArray << endl;
+        return 0;
+}
+
 int main(int argc, char ** argv)
 {
     categoryDescription[UTF8PROC_CATEGORY_CN] = "Other, not assigned";
@@ -499,7 +609,7 @@ int main(int argc, char ** argv)
     boundClass[UTF8PROC_BOUNDCLASS_EXTENDED_PICTOGRAPHIC] = "Extended_Pictographic",
     boundClass[UTF8PROC_BOUNDCLASS_E_ZWG] = "UTF8PROC_BOUNDCLASS_EXTENDED_PICTOGRAPHIC + ZWJ";
     
-    const char * modeInfo = "A mode of operation is required: unaccent, normalize, representation."
+    const char * modeInfo = "A mode of operation is required: unaccent, normalize, representation, properties."
      "\nPass '--help' for more information in each mode.";
     const int sargc = argc - 1;
     if (sargc == 0)
@@ -533,6 +643,10 @@ int main(int argc, char ** argv)
     else if (mode == "representation")
     {
         ret = representation (sargc, sargv);
+    }
+    else if (mode == "properties")
+    {
+        ret = properties(sargc, sargv);
     }
     else
     {
