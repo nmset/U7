@@ -606,7 +606,7 @@ int main(int argc, char ** argv)
     boundClass[UTF8PROC_BOUNDCLASS_E_MODIFIER] = "Emoji Modifier";
     boundClass[UTF8PROC_BOUNDCLASS_GLUE_AFTER_ZWJ] = "Glue_After_ZWJ";
     boundClass[UTF8PROC_BOUNDCLASS_E_BASE_GAZ] = "E_BASE + GLUE_AFTER_ZJW";
-    boundClass[UTF8PROC_BOUNDCLASS_EXTENDED_PICTOGRAPHIC] = "Extended_Pictographic",
+    boundClass[UTF8PROC_BOUNDCLASS_EXTENDED_PICTOGRAPHIC] = "Extended_Pictographic";
     boundClass[UTF8PROC_BOUNDCLASS_E_ZWG] = "UTF8PROC_BOUNDCLASS_EXTENDED_PICTOGRAPHIC + ZWJ";
     
     const char * modeInfo = "A mode of operation is required: unaccent, normalize, representation, properties."
