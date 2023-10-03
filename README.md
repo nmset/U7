@@ -60,10 +60,10 @@ This project links to the [utf8proc](https://github.com/JuliaStrings/utf8proc) l
       -u, --isupper: displays 1 if the codepoint refers to an upper-case character,
       0 otherwise
       -c, --category: determines the category of a codepoint (Letter, Number, Symbol...)
-      -n, --direction: determines the bidirectional class of a codepoint; see utf8proc.h
+      -d, --direction: determines the bidirectional class of a codepoint; see utf8proc.h
       -i, --decompositiontype: determines the decomposition type of a codepoint;
       see utf8proc.h
-      -k, --boundclass: determines the boundclass property of a codepoint; see utf8proc.h
+      -b, --boundclass: determines the boundclass property of a codepoint; see utf8proc.h
       -h, --help: show this message
     
     The input can be piped in or read from stdin. Pass in a single character for simplicity.

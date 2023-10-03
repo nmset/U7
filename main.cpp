@@ -114,9 +114,9 @@ void propertiesShowHelp()
     "\n\n  -l, --islower: displays 1 if the codepoint refers to a lower-case character, 0 otherwise"
     "\n  -u, --isupper: displays 1 if the codepoint refers to an upper-case character, 0 otherwise"
     "\n  -c, --category: determines the category of a codepoint (Letter, Number, Symbol...)"
-    "\n  -n, --direction: determines the bidirectional class of a codepoint; see utf8proc.h"
+    "\n  -d, --direction: determines the bidirectional class of a codepoint; see utf8proc.h"
     "\n  -i, --decompositiontype: determines the decomposition type of a codepoint; see utf8proc.h"
-    "\n  -k, --boundclass: determines the boundclass property of a codepoint; see utf8proc.h"
+    "\n  -b, --boundclass: determines the boundclass property of a codepoint; see utf8proc.h"
     "\n  -h, --help: show this message"
     "\n\nThe input can be piped in or read from stdin. Pass in a single character for simplicity.");
     
