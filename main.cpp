@@ -623,8 +623,8 @@ int main(int argc, char ** argv)
     boundClass[UTF8PROC_BOUNDCLASS_EXTENDED_PICTOGRAPHIC] = _("Extended_Pictographic");
     boundClass[UTF8PROC_BOUNDCLASS_E_ZWG] = _("UTF8PROC_BOUNDCLASS_EXTENDED_PICTOGRAPHIC + ZWJ");
     
-    const char * modeInfo = "A mode of operation is required: unaccent, normalize, representation, properties, about."
-     "\nPass '--help' for more information in each mode.";
+    const char * modeInfo = _("A mode of operation is required: unaccent, normalize, representation, properties, about."
+     "\nPass '--help' for more information in each mode.");
     const int sargc = argc - 1;
     if (sargc == 0)
     {

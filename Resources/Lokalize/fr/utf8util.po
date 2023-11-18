@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2023-11-18 21:33+0100\n"
-"PO-Revision-Date: 2023-11-18 21:36+0100\n"
+"PO-Revision-Date: 2023-11-18 22:55+0100\n"
 "Last-Translator: Saleem EDAH-TALLY <set@nmset.info>\n"
 "Language-Team: French <>\n"
 "Language: fr_FR\n"
@@ -814,5 +814,6 @@ msgstr ""
 
 #: ../../main.cpp:485
 msgid "Category: "
-msgstr ""
+msgstr "Catégorie: "
+
 
