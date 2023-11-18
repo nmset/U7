@@ -19,8 +19,9 @@ using namespace std;
 #define STRIP_OPTIONS_DEFAULT (UTF8PROC_IGNORE | UTF8PROC_STRIPCC | UTF8PROC_STRIPMARK | UTF8PROC_STRIPNA | UTF8PROC_DECOMPOSE | UTF8PROC_STABLE | UTF8PROC_NULLTERM)
 //https://www.labri.fr/perso/fleury/posts/programming/a-quick-gettext-tutorial.html
 #define _(STRING) gettext(STRING)
+#define _E(STRING) string(getenv("UTF8UTIL_RESULT_ONLY") != NULL ? "" : STRING)
 #define _APPNAME_ "utf8util"
-#define _APPVERSION_ 1
+#define _APPVERSION_ 2
 
 typedef map<int, string> KeyValuePair;
 // Described in utf8proc.h.
@@ -103,7 +104,8 @@ void representationShowHelp()
     "\n  -U, --toupper: displays the codepoint as an upper-case character if existent"
     "\n  -T, --totitle: displays the codepoint as a title-case character if existent"
     "\n  -h, --help: show this message"
-    "\n\nThe input can be piped in or read from stdin. Pass in a single character for simplicity.");
+    "\n\nThe input can be piped in or read from stdin. Pass in a single character for simplicity."
+    "\nIf the environment variable 'UTF8UTIL_RESULT_ONLY' is set, only the result is printed on stdout.");
     
     cout << message << endl;
 }
@@ -118,7 +120,8 @@ void propertiesShowHelp()
     "\n  -i, --decompositiontype: determines the decomposition type of a codepoint; see utf8proc.h"
     "\n  -b, --boundclass: determines the boundclass property of a codepoint; see utf8proc.h"
     "\n  -h, --help: show this message"
-    "\n\nThe input can be piped in or read from stdin. Pass in a single character for simplicity.");
+    "\n\nThe input can be piped in or read from stdin. Pass in a single character for simplicity."
+    "\nIf the environment variable 'UTF8UTIL_RESULT_ONLY' is set, only the result is printed on stdout.");
     
     cout << message << endl;
 }
@@ -324,10 +327,10 @@ int representation(int argc, char ** argv)
         
         switch (opt) {
             case 'p':
-                cout << _("Codepoint: ") << valueRepresentation(codepoint, 'U') << endl;
+                cout << _E(_("Codepoint: ")) << valueRepresentation(codepoint, 'U') << endl;
                 break;
             case 'e':
-                cout << "UTF-8: ";
+                cout << _E("UTF-8: ");
                 for (uint i = 0; i < nbOfBytesInFirstChar; i++)
                 {
                     cout << valueRepresentation(firstCharArray[i], 16) << " ";
@@ -336,7 +339,7 @@ int representation(int argc, char ** argv)
                 break;
             case 's':
                 // https://en.wikipedia.org/wiki/UTF-16
-                cout << "UTF-16: ";
+                cout << _E("UTF-16: ");
                 if (codepoint < 0xFFFF) // 2 bytes only
                 {
                     cout << valueRepresentation(codepoint, 17);
@@ -354,7 +357,7 @@ int representation(int argc, char ** argv)
                 cout << endl;
                 break;
             case 'b':
-                cout << _("Binary: ");
+                cout << _E(_("Binary: "));
                 for (uint i = 0; i < nbOfBytesInFirstChar; i++)
                 {
                     cout << valueRepresentation(firstCharArray[i], 2) << " ";
@@ -362,7 +365,7 @@ int representation(int argc, char ** argv)
                 cout << endl;
                 break;
             case 'o':
-                cout << _("Octal: ");
+                cout << _E(_("Octal: "));
                 for (uint i = 0; i < nbOfBytesInFirstChar; i++)
                 {
                     cout << valueRepresentation(firstCharArray[i], 8) << " ";
@@ -370,7 +373,7 @@ int representation(int argc, char ** argv)
                 cout << endl;
                 break;
             case 'd':
-                cout << _("Decimal: ");
+                cout << _E(_("Decimal: "));
                 for (uint i = 0; i < nbOfBytesInFirstChar; i++)
                 {
                     cout << valueRepresentation(firstCharArray[i], 10) << " ";
@@ -378,7 +381,7 @@ int representation(int argc, char ** argv)
                 cout << endl;
                 break;
             case 'x':
-                cout << _("XML decimal: ") << valueRepresentation(codepoint, 'x') << endl;
+                cout << _E(_("XML decimal: ")) << valueRepresentation(codepoint, 'x') << endl;
                 break;
             case 'L':
             {
@@ -386,7 +389,7 @@ int representation(int argc, char ** argv)
                 utf8proc_uint8_t dst[5];
                 utf8proc_ssize_t bytesWritten = utf8proc_encode_char(lowerCodepoint, &dst[0]);
                 dst[bytesWritten] = '\0';
-                cout << _("To lower: ") << (const char*) dst << endl;
+                cout << _E(_("To lower: ")) << (const char*) dst << endl;
             }
                 break;
             case 'U':
@@ -395,7 +398,7 @@ int representation(int argc, char ** argv)
                 utf8proc_uint8_t dst[5];
                 utf8proc_ssize_t bytesWritten = utf8proc_encode_char( upperCodepoint, &dst[0]);
                 dst[bytesWritten] = '\0';
-                cout << _("To upper: ") << (const char*) dst << endl;
+                cout << _E(_("To upper: ")) << (const char*) dst << endl;
             }
                 break;
             case 'T':
@@ -404,7 +407,7 @@ int representation(int argc, char ** argv)
                 utf8proc_uint8_t dst[5];
                 utf8proc_ssize_t bytesWritten = utf8proc_encode_char( upperCodepoint, &dst[0]);
                 dst[bytesWritten] = '\0';
-                cout << _("To title: ") << (const char*) dst << endl;
+                cout << _E(_("To title: ")) << (const char*) dst << endl;
             }
                 break;
             case 'h':
@@ -417,7 +420,7 @@ int representation(int argc, char ** argv)
         }
     }
     // Show the processed character.
-    cout << _("Character: ") << (const char*) firstCharArray << endl;
+    cout << _E(_("Character: ")) << (const char*) firstCharArray << endl;
     return 0;
 }
 
@@ -471,35 +474,35 @@ int properties(int argc, char ** argv)
             
             switch (opt) {
                 case 'l':
-                    cout << _("Is lower: ") << utf8proc_islower(codepoint) << endl;
+                    cout << _E(_("Is lower: ")) << utf8proc_islower(codepoint) << endl;
                     break;
                 case 'u':
-                    cout << _("Is upper: ") << utf8proc_isupper(codepoint) << endl;
+                    cout << _E(_("Is upper: ")) << utf8proc_isupper(codepoint) << endl;
                     break;
                 case 'c':
                 {
                     utf8proc_category_t category = utf8proc_category(codepoint);
-                    cout << _("Category: [") << utf8proc_category_string(codepoint) << "] ";
+                    cout << _E(_("Category: ")) << "[" << utf8proc_category_string(codepoint) << "] ";
                     cout << categoryDescription[category] << endl;
                 }
                 break;
                 case 'd':
                 {
                     const utf8proc_property_t * property = utf8proc_get_property(codepoint);
-                    cout << _("Direction: ") << bidirectional[property->bidi_class] << endl;
+                    cout << _E(_("Direction: ") )<< bidirectional[property->bidi_class] << endl;
                 }
                 break;
                 case 'i':
                 {
                     const utf8proc_property_t * property = utf8proc_get_property(codepoint);
-                    cout << _("Decomposition type: ") << decompositionType[property->decomp_type] << endl;
+                    cout << _E(_("Decomposition type: ")) << decompositionType[property->decomp_type] << endl;
                 }
                 break;
                 case 'b':
                 {
                     // property->boundclass is 1 (other) on all tested characters.
                     const utf8proc_property_t * property = utf8proc_get_property(codepoint);
-                    cout << _("Bound class: ") << boundClass[property->boundclass] << endl;
+                    cout << _E(_("Bound class: ")) << boundClass[property->boundclass] << endl;
                 }
                 break;
                 case 'h':
@@ -512,7 +515,7 @@ int properties(int argc, char ** argv)
             }
         }
         // Show the processed character.
-        cout << _("Character: ") << (const char*) firstCharArray << endl;
+        cout << _E(_("Character: ")) << (const char*) firstCharArray << endl;
         return 0;
 }
 

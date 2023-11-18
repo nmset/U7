@@ -51,6 +51,8 @@ This project links to the [utf8proc](https://github.com/JuliaStrings/utf8proc) l
       -h, --help: show this message
     
     The input can be piped in or read from stdin. Pass in a single character for simplicity.
+    If the environment variable 'UTF8UTIL_RESULT_ONLY' is set, only the result is printed
+    on stdout.
 ---
     $ utf8util properties --help
     This operational mode displays properties of the first identified codepoint.
@@ -67,10 +69,12 @@ This project links to the [utf8proc](https://github.com/JuliaStrings/utf8proc) l
       -h, --help: show this message
     
     The input can be piped in or read from stdin. Pass in a single character for simplicity.
+    If the environment variable 'UTF8UTIL_RESULT_ONLY' is set, only the result is printed
+    on stdout.
 ---
     $ utf8util about            
     Author: Saleem Edah-Tally [Surgeon, Hobbyist developer]
-    Version: 1
+    Version: 2
     License: CeCILL
 ---
 
